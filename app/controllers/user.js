@@ -5,47 +5,103 @@ const crypto = require('crypto');
 const async = require('async');
 const User = require("../models/user");
 const UserRole = require("../models/user-role");
+const readXlsxFile = require('read-excel-file/node');
+const parseXlsx = require('excel');
+
+// exports.user_create = (req, res, next) => {
+//   console.log(req.body);
+//   User.find({ email: req.body.email })
+//     .exec()
+//     .then(user => {
+//       if (user.length >= 1) {
+//         return res.status(409).json({
+//           message: "Email address exists"
+//         });
+//       } else {
+//         const user = new User({
+//           _id: new mongoose.Types.ObjectId(),
+//           email: req.body.email,
+//           name: req.body.name,
+//           birthDay: req.body.birthDay,
+//           department: req.body.department
+//         });
+//         user.save()
+//           .then(result => {
+//             res.status(201).json({
+//               user: {
+//                 _id: result._id,
+//                 email: result.email,
+//                 department: result.department,
+//                 birthDay: result.birthDay,
+//                 name: result.name,
+//                 status: result.status
+//               },
+//               Message: "User created"
+//             });
+//           })
+//           .catch(err => {
+//             console.log(err);
+//             res.status(500).json({
+//               error: err
+//             });
+//           });
+//       }
+//     });
+// };
 
 exports.user_create = (req, res, next) => {
   console.log(req.body);
-  User.find({ email: req.body.email })
-    .exec()
-    .then(user => {
-      if (user.length >= 1) {
-        return res.status(409).json({
-          message: "Email address exists"
-        });
-      } else {
-        const user = new User({
-          _id: new mongoose.Types.ObjectId(),
-          email: req.body.email,
-          name: req.body.name,
-          birthDay: req.body.birthDay,
-          department: req.body.department
-        });
-        user.save()
-          .then(result => {
-            res.status(201).json({
-              user: {
-                _id: result._id,
-                email: result.email,
-                department: result.department,
-                birthDay: result.birthDay,
-                name: result.name,
-                status: result.status
-              },
-              Message: "User created"
-            });
-          })
-          .catch(err => {
-            console.log(err);
-            res.status(500).json({
-              error: err
-            });
+    User.find({ email: req.body.email })
+      .exec()
+      .then(user => {
+        if (user.length >= 1) {
+          return res.status(409).json({
+            message: "Email address exists"
           });
-      }
-    });
+        } else {
+           
+          const newUserPassword = req.body.password;
+          bcrypt.hash(newUserPassword, 10, (err, hash) => {
+            if (err) {
+              return res.status(500).json({
+                error: err
+              });
+            } else {
+              console.log(hash)
+              const user = new User({
+                _id: new mongoose.Types.ObjectId(),
+                email: req.body.email,
+                name: req.body.name,
+                birthDay: req.body.birthDay,
+                department: req.body.department,
+                password: hash
+              });
+              user.save()
+                .then(result => {
+                  res.status(201).json({
+                    user:{
+                      _id: result._id,
+                      email: result.email,
+                      department: result.department,
+                      birthDay: result.birthDay,
+                      name: result.name,
+                      status: result.status
+                    },
+                    Message: "User created"
+                  });
+                })
+                .catch(err => {
+                  console.log(err);
+                  res.status(500).json({
+                    error: err
+                  });
+                });
+            }
+          });
+        }
+      });
 };
+
 
 exports.get_all_users = (req, res, next) => {
   User.aggregate([
@@ -85,9 +141,15 @@ exports.user_login = (req, res, next) => {
         "foreignField": "roleId",
         "as": "userRole"
       }
+    },
+   {
+    "$match": {
+      "email": req.body.email
     }
+  }
   ])
     .then(user => {
+      console.log(user[0].password)
       if (user.length < 1) {
         return res.status(401).json({
           message: "Auth failed"
@@ -255,3 +317,68 @@ exports.assign_user_role = (req, res, next) => {
       });
     });
 };
+
+exports.import_user_csv = (req, res, next) => {
+  console.log("sgg*******", req.files.file.name);
+  parseXlsx(req.files.file.name).then((data) => {
+    console.log(data);
+    // data is an array of arrays
+  });
+  //  const schema = {
+  //   //  'ID': {
+  //   //    prop: 'ID',
+  //   //    type: String
+  //   //  },
+  //    'Name': {
+  //      prop: 'Name',
+  //      type: String
+  //    }
+  //   //  'Department': {
+  //   //    prop: 'Department',
+  //   //    type: String
+  //   //  },
+  //   //  'User_Role': {
+  //   //    prop: 'User_Role',
+  //   //    type: String
+  //   //  },
+  //   //  'Birth_Day': {
+  //   //    prop: 'Birth_Day',
+  //   //    type: String
+  //   //  },
+  //   //  'Email': {
+  //   //   prop: 'Email',
+  //   //   type: String
+  //   // }
+  //  }
+
+  //  readXlsxFile(req.files.file.path, { schema })
+  //  .then(({ rows, errors }) => {
+  //   //  console.log("ffafafaf*******", rows);
+       
+  //    var output = rows.map(s => {
+  //      // if (s.hasOwnProperty("ERF_Number")) {
+  //        s.name = s.Name;
+  //       //  s.birthDay = s.Birth_Day;
+  //       //  s.userRole = s.User_Role;
+  //       //  s.department = s.department;
+  //       //  s.email = s.email;
+  //      return s;
+  //    })
+     
+  //    console.log("output*********", output);
+  //    //console.log(mongoData);
+  //   //  User.insertMany(output)
+  //   //  .then(result => {
+  //   //    res.status(201).json({
+  //   //      message: "CSV uploaded"
+  //   //    });
+  //   //  })
+  //   //  .catch(err => {
+  //   //    console.log(err);
+  //   //    res.status(500).json({
+  //   //      error: err
+  //   //    });
+  //   //  });
+  //    // console.log(rows)
+  //  })
+  }

@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const UserController = require('../controllers/user');
+const multipartyMiddleware = require('connect-multiparty')();
 
 //get all users
 router.get("/get/all", UserController.get_all_users);
@@ -15,5 +16,7 @@ router.post("/update/:userId", UserController.update_users_details);
 router.post("/assign/user-role/:userId/:userRoleId", UserController.assign_user_role);
 //delete user
 router.delete("/delete/:userId", UserController.user_delete);
+//import user from csv
+router.post("/upload/csv", multipartyMiddleware, UserController.import_user_csv);
 
 module.exports = router;
